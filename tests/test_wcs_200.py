@@ -21,38 +21,21 @@ def test_wcs_200():
     wcs = WebCoverageService(SERVICE_URL, version="2.0.1")
     assert wcs.version == '2.0.1'
     assert wcs.url == SERVICE_URL
-    assert wcs.identification.title == 'rasdaman'
+    assert wcs.identification.title == 'Marine Science Data Service'
     assert wcs.identification.service == 'OGC WCS'
-    assert wcs.provider.name == 'Jacobs University Bremen'
-    assert sorted(wcs.contents.keys()) == [
-        'CCI_V2_monthly_chlor_a',
-        'OCCCI_V1_0_chlor_a_daily',
-        'OCCCI_V1_0_chlor_a_monthly',
-        'OCCCI_V2_0_Rrs_bands_5_day',
-        'OCCCI_V2_0_Rrs_bands_8_day',
-        'OCCCI_V2_0_Rrs_bands_daily',
-        'OCCCI_V2_0_Rrs_bands_monthly',
-        'OCCCI_V2_0_chlor_a_5_day',
-        'OCCCI_V2_0_chlor_a_8_day',
-        'OCCCI_V2_0_chlor_a_daily',
-        'OCCCI_V2_0_chlor_a_monthly',
-        'OCCCI_V3_0_Rrs_bands_daily',
-        'OCCCI_V3_0_Rrs_bands_monthly',
-        'OCCCI_V3_0_chlor_a_daily',
-        'OCCCI_V3_0_chlor_a_monthly',
-        'OCCCI_V3_1_Rrs_bands_5_day',
-        'OCCCI_V3_1_Rrs_bands_8_day',
-        'OCCCI_V3_1_Rrs_bands_daily',
-        'OCCCI_V3_1_Rrs_bands_monthly',
-        'OCCCI_V3_1_chlor_a_5_day',
-        'OCCCI_V3_1_chlor_a_8_day',
-        'OCCCI_V3_1_chlor_a_daily',
-        'OCCCI_V3_1_chlor_a_monthly',
-        'OLCI_A7_CHL',
-        'OLCI_GY_CHL',
-        'OLCI_OX_CHL',
-        'OLCI_UK_CHL'
-    ]
+    assert wcs.provider.name == 'Plymouth Marine Laboratory'
+    assert sorted(wcs.contents.keys())[:10] == ['CCI_V2_monthly_chlor_a',
+            'ECMWF_SST_4326_05',
+            'OCCCI_V1_0_chlor_a_daily',
+            'OCCCI_V1_0_chlor_a_monthly',
+            'OCCCI_V2_0_Rrs_bands_5_day',
+            'OCCCI_V2_0_Rrs_bands_8_day',
+            'OCCCI_V2_0_Rrs_bands_daily',
+            'OCCCI_V2_0_Rrs_bands_monthly',
+            'OCCCI_V2_0_chlor_a_5_day',
+            'OCCCI_V2_0_chlor_a_8_day'
+            ]
+
     cvg = wcs.contents['OCCCI_V3_1_chlor_a_monthly']
     assert cvg.boundingboxes[0]['bbox'] == (-89.9999973327159, -180.00000333371918, 89.9999973327159, 180.00000333371918)
     assert cvg.timelimits == [datetime.datetime(1997, 9, 4, 0, 0), datetime.datetime(2016, 12, 1, 0, 0)]
