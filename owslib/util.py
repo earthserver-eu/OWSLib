@@ -10,6 +10,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import sys
+from collections import OrderedDict
 from dateutil import parser
 from datetime import datetime, timedelta
 import pytz
@@ -36,7 +37,7 @@ Utility functions and classes
 """
 
 class ServiceException(Exception):
-    #TODO: this should go in ows common module when refactored.  
+    #TODO: this should go in ows common module when refactored.
     pass
 
 # http://stackoverflow.com/questions/6256183/combine-two-dictionaries-of-dictionaries-python
@@ -90,7 +91,7 @@ def xml_to_dict(root, prefix=None, depth=1, diction=None):
         Return
         =======
         Dictionary of (key,value); where key is the element tag stripped of namespace and cleaned up to be pep8 and
-        value is the inner-text of the element. Note that duplicate elements will be replaced by the last element of the 
+        value is the inner-text of the element. Note that duplicate elements will be replaced by the last element of the
         same tag in the tree.
     """
     ret = diction if diction is not None else dict()
@@ -133,12 +134,15 @@ class ResponseWrapper(object):
 
     # @TODO: __getattribute__ for poking at response
 
-def openURL(url_base, data=None, method='Get', cookies=None, username=None, password=None, timeout=30, headers=None):
+def openURL(url_base, data=None, method='Get', cookies=None, username=None, password=None, timeout=30, headers=None, verify=True):
     """
     Function to open URLs.
 
     Uses requests library but with additional checks for OGC service exceptions and url formatting.
     Also handles cookies and simple user password authentication.
+
+    :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
+    :param verify: (optional) whether the SSL cert will be verified. A CA_BUNDLE path can also be provided. Defaults to ``True``.
     """
 
     headers = headers if headers is not None else {}
@@ -167,7 +171,7 @@ def openURL(url_base, data=None, method='Get', cookies=None, username=None, pass
 
     elif method.lower() == 'get':
         rkwargs['params'] = data
-        
+
     else:
         raise ValueError("Unknown method ('%s'), expected 'get' or 'post'" % method)
 
@@ -177,6 +181,7 @@ def openURL(url_base, data=None, method='Get', cookies=None, username=None, pass
     req = requests.request(method.upper(),
                            url_base,
                            headers=headers,
+                           verify=verify,
                            **rkwargs)
 
     if req.status_code in [400, 401]:
@@ -214,7 +219,7 @@ def nspath(path, ns=OWS_NAMESPACE):
     """
 
     Prefix the given path with the given namespace identifier.
-    
+
     Parameters
     ----------
 
@@ -324,10 +329,10 @@ def testXMLValue(val, attrib=False):
     if val is not None:
         if attrib:
             return val.strip()
-        elif val.text:  
+        elif val.text:
             return val.text.strip()
         else:
-            return None	
+            return None
     else:
         return None
 
@@ -351,7 +356,7 @@ def testXMLAttribute(element, attribute):
 def http_post(url=None, request=None, lang='en-US', timeout=10, username=None, password=None):
     """
 
-    Invoke an HTTP POST request 
+    Invoke an HTTP POST request
 
     Parameters
     ----------
@@ -471,7 +476,7 @@ def getNamespace(element):
 
 def build_get_url(base_url, params):
     ''' Utility function to build a full HTTP GET URL from the service base URL and a dictionary of HTTP parameters. '''
-    
+
     qs = []
     if base_url.find('?') != -1:
         qs = cgi.parse_qsl(base_url.split('?')[1])
@@ -494,7 +499,7 @@ def getTypedValue(data_type, value):
     '''Utility function to cast a string value to the appropriate XSD type. '''
 
     if data_type == 'boolean':
-        return bool(value)
+        return True if value.lower() == 'true' else False
     elif data_type == 'integer':
         return int(value)
     elif data_type == 'float':
@@ -538,13 +543,10 @@ def extract_xml_list(elements):
 Some people don't have seperate tags for their keywords and seperate them with
 a newline. This will extract out all of the keywords correctly.
 """
-    if elements:
-        keywords = [re.split(r'[\n\r]+',f.text) for f in elements if f.text]
-        flattened = [item.strip() for sublist in keywords for item in sublist]
-        remove_blank = [_f for _f in flattened if _f]
-        return remove_blank
-    else:
-        return []
+    keywords = (re.split(r'[\n\r]+',f.text) for f in elements if f.text)
+    flattened = (item.strip() for sublist in keywords for item in sublist)
+    remove_blank = [_f for _f in flattened if _f]
+    return remove_blank
 
 
 def strip_bom(raw_text):
@@ -635,13 +637,6 @@ except AttributeError:
 log = logging.getLogger('owslib')
 log.addHandler(NullHandler())
 
-# OrderedDict
-try:  # 2.7
-    from collections import OrderedDict
-except:  # 2.6
-    from ordereddict import OrderedDict
-
-
 def which_etree():
     """decipher which etree library is being used by OWSLib"""
 
@@ -669,23 +664,9 @@ def findall(root, xpath, attribute_name=None, attribute_value=None):
 
     found_elements = []
 
-
-    # python 2.6 < does not support complicated XPATH expressions used lower
-    if (2, 6) == sys.version_info[0:2] and which_etree() != 'lxml.etree':
-
-        elements = root.getiterator(xpath)
-
-        if attribute_name is not None and attribute_value is not None:
-            for element in elements:
-                if element.attrib.get(attribute_name) == attribute_value:
-                    found_elements.append(element)
-        else:
-            found_elements = elements
-    # python at least 2.7 and/or lxml can do things much simplier
-    else:
-        if attribute_name is not None and attribute_value is not None:
-            xpath = '%s[@%s="%s"]' % (xpath, attribute_name, attribute_value)
-        found_elements = root.findall('.//' + xpath)
+    if attribute_name is not None and attribute_value is not None:
+        xpath = '%s[@%s="%s"]' % (xpath, attribute_name, attribute_value)
+    found_elements = root.findall('.//' + xpath)
 
     if found_elements == []:
         found_elements = None
