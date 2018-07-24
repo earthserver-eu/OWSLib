@@ -244,23 +244,28 @@ class ContentMetadata(object):
      #timelimits are the start/end times, timepositions are all timepoints. WCS servers can declare one or both or neither of these.
      # in wcs 2.0 this can be gathered from the Envelope tag
     def _getTimeLimits(self):
-        # timepoints, timelimits=[],[]
-        # b=self._elem.find(ns('lonLatEnvelope'))
-        # if b is not None:
-        #     timepoints=b.findall('{http://www.opengis.net/gml}timePosition')
-        # else:
-        #     #have to make a describeCoverage request...
-        #     if not hasattr(self, 'descCov'):
-        #         self.descCov=self._service.getDescribeCoverage(self.id)
-        #     for pos in self.descCov.findall(ns('CoverageOffering/')+ns('domainSet/')+ns('temporalDomain/')+'{http://www.opengis.net/gml}timePosition'):
-        #         timepoints.append(pos)
-        # if timepoints:
-        #         timelimits=[timepoints[0].text,timepoints[1].text]
+        if self.timepositions:
+            return [self.timepositions[0],self.timepositions[-1]]
+        else:
+            if not hasattr(self, 'descCov'):
+                self.descCov=self._service.getDescribeCoverage(self.id)
+            return [ self.envelopes[ 0 ][ 'lowerCorner' ][ -1 ], self.envelopes[ 0 ][ 'upperCorner' ][ -1 ] ]
+        timepoints, timelimits=[],[]
+        b=self._elem.find(ns('lonLatEnvelope'))
+        if b is not None:
+            timepoints=b.findall('{http://www.opengis.net/gml}timePosition')
+        else:
+            #have to make a describeCoverage request...
+            if not hasattr(self, 'descCov'):
+                self.descCov=self._service.getDescribeCoverage(self.id)
+            for pos in self.descCov.findall(ns('CoverageOffering/')+ns('domainSet/')+ns('temporalDomain/')+'{http://www.opengis.net/gml}timePosition'):
+                timepoints.append(pos)
+        if timepoints:
+            timelimits=[timepoints[0].text,timepoints[1].text]
         return [self.timepositions[0],self.timepositions[-1]]
     timelimits=property(_getTimeLimits, None)
 
     def _getTimePositions(self):
-
         timepositions=[]
         if not hasattr(self, 'descCov'):
             self.descCov=self._service.getDescribeCoverage(self.id)
@@ -285,7 +290,7 @@ class ContentMetadata(object):
                 t_date = t_grid.origin[2]
                 start_pos = parser.parse(t_date, fuzzy=True)
                 step = float(t_grid.offsetvectors[2][2])
-                
+
                 start_pos = start_pos + timedelta(days=(step/2))
                 no_steps = int(t_grid.highlimits[2])
                 for x in range(no_steps):
@@ -300,6 +305,19 @@ class ContentMetadata(object):
         return timepositions
     timepositions=property(_getTimePositions, None)
 
+    def _getEnvelopes(self):
+        envelopes = []
+        if not hasattr(self, 'descCov'):
+            self.descCov=self._service.getDescribeCoverage(self.id)
+
+        for envelope in self.descCov.findall(nsWCS2('CoverageDescription/')+'{http://www.opengis.net/gml/3.2}boundedBy/'+'{http://www.opengis.net/gml/3.2}Envelope'):
+            lc = envelope.find('{http://www.opengis.net/gml/3.2}lowerCorner')
+            lc =lc.text.split()
+            uc = envelope.find('{http://www.opengis.net/gml/3.2}upperCorner')
+            uc =uc.text.split()
+            envelopes.append( { "lowerCorner": lc, "upperCorner": uc } )
+        return envelopes
+    envelopes=property(_getEnvelopes,None)
 
     def _getOtherBoundingBoxes(self):
         ''' incomplete, should return other bounding boxes not in WGS84
