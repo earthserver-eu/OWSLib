@@ -109,7 +109,7 @@ class WebCoverageService_2_0_0(WCSBase):
             sval = value
         return sval
 
-    def getCoverage(self, identifier=None, bbox=None, time=None, format = None,  subsets=None,crs=None, width=None, height=None, resx=None, resy=None, resz=None,parameter=None,method='Get',**kwargs):
+    def getCoverage(self, identifier=None, bbox=None, time=None, format=None, token=None, subsets=None, crs=None, width=None, height=None, resx=None, resy=None, resz=None, parameter=None, method='Get', **kwargs):
         """Request and return a coverage from the WCS as a file-like object
         note: additional **kwargs helps with multi-version implementation
         core keyword arguments should be supported cross version
@@ -128,7 +128,7 @@ class WebCoverageService_2_0_0(WCSBase):
 
         """
         if log.isEnabledFor(logging.DEBUG):
-            log.debug('WCS 2.0.0 DEBUG: Parameters passed to GetCoverage: identifier=%s, bbox=%s, time=%s, format=%s, crs=%s, width=%s, height=%s, resx=%s, resy=%s, resz=%s, parameter=%s, method=%s, other_arguments=%s'%(identifier, bbox, time, format, crs, width, height, resx, resy, resz, parameter, method, str(kwargs)))
+            log.debug('WCS 2.0.0 DEBUG: Parameters passed to GetCoverage: identifier=%s, bbox=%s, time=%s, format=%s, token=%s, crs=%s, width=%s, height=%s, resx=%s, resy=%s, resz=%s, parameter=%s, method=%s, other_arguments=%s'%(identifier, bbox, time, format, token, crs, width, height, resx, resy, resz, parameter, method, str(kwargs)))
 
         try:
             base_url = next((m.get('url') for m in self.getOperationByName('GetCoverage').methods if m.get('type').lower() == method.lower()))
@@ -146,6 +146,7 @@ class WebCoverageService_2_0_0(WCSBase):
         if crs:
             request['crs']=crs
         request['format']=format
+        request['token']=token
         if width:
             request['width']=width
         if height:
