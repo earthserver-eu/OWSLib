@@ -14,7 +14,7 @@ Imports
     >>> wcs.url
     'http://earthserver.pml.ac.uk/rasdaman/ows'
     >>> wcs.version
-    '2.0.0'
+    '2.0.1'
     >>> wcs.identification.service
     'OGC WCS'
     >>> wcs.identification.version
@@ -38,14 +38,14 @@ Imports
 
 Print the ids of all layers (actually just the first 3):
    >>> sorted(wcs.contents.keys())[0:3]
-   ['CCI_V2_monthly_Rrs_412', 'CCI_V2_monthly_Rrs_443', 'CCI_V2_monthly_Rrs_490']
+   ['CCI_V2_monthly_chlor_a', 'OCCCI_V1_0_chlor_a_daily', 'OCCCI_V1_0_chlor_a_monthly']
 
 #To further interrogate a single "coverage" get the coverageMetadata object
 #You can either do:
-    >>> cvg= wcs.contents['CCI_V2_monthly_Rrs_412'] #to get it from the dictonary
+    >>> cvg= wcs.contents['CCI_V2_monthly_chlor_a'] #to get it from the dictonary
 
 #or even simpler you can do:
-    >>> cvg=wcs['CCI_V2_monthly_Rrs_412']
+    >>> cvg=wcs['CCI_V2_monthly_chlor_a']
     
     # seems to not be an equivelent in wcs 2.0
     #>>> cvg.boundingBoxWGS84
@@ -59,7 +59,8 @@ Print the ids of all layers (actually just the first 3):
     #['EPSG:9802']
 
     >>> cvg.supportedFormats
-    ['application/gml+xml', 'text/csv', 'application/json', 'image/tiff', 'application/netcdf', 'image/png', 'image/jp2', 'image/jpeg']
+    ['application/gml+xml', 'image/jpeg', 'image/png', 'image/tiff', 'image/bmp', 'image/jp2', 'application/netcdf', 'text/csv', 'application/json', 'application/dem', 'application/x-ogc-dted', 'application/x-ogc-ehdr', 'application/x-ogc-elas', 'application/x-ogc-envi', 'application/x-ogc-ers', 'application/x-ogc-fit', 'application/x-ogc-fits', 'image/gif', 'application/x-netcdf-gmt', 'application/x-ogc-gs7bg', 'application/x-ogc-gsag', 'application/x-ogc-gsbg', 'application/x-ogc-gta', 'application/x-ogc-hf2', 'application/x-erdas-hfa', 'application/x-ogc-ida', 'application/x-ogc-ingr', 'application/x-ogc-isis2', 'application/x-erdas-lan', 'application/x-ogc-mff2', 'application/x-ogc-nitf', 'application/x-ogc-paux', 'application/x-ogc-pcidsk', 'application/x-ogc-pcraster', 'application/x-ogc-pdf', 'application/x-ogc-pnm', 'text/x-r', 'application/x-ogc-rmf', 'image/x-sgi', 'application/x-ogc-vrt', 'image/xpm', 'application/x-ogc-zmap']
+
 
     >>> cvg.grid.axislabels
     ['Lat', 'Long', 'ansi']
@@ -71,24 +72,25 @@ Print the ids of all layers (actually just the first 3):
     ['0', '0', '0']
 
     >>> cvg.grid.highlimits
-    ['8639', '4319', '195']
+    ['4319', '8639', '195']
 
     >>> cvg.grid.origin
-    ['89.9791564941', '-179.979202271', '"1997-09-30T23:59:00.000Z"']
+    ['89.97915599999999999999999999959', '-179.979200000000000000000000024445', '"1997-09-04T00:00:00.000Z"']
+
 
     >>> cvg.grid.offsetvectors
-    [['-0.0416666619561', '0', '0'], ['0', '0.0416666749093', '0'], ['0', '0', '1']]
+    [['-0.04166666172725167862931234082', '0', '0'], ['0', '0.04166667438360921402940155111', '0'], ['0', '0', '1']]
 
 
 #Now we have enough information to build a getCoverage request:
-    >>> covID='OCCCI_V3_monthly_chlor_a'
+    >>> covID='OCCCI_V3_1_chlor_a_monthly'
     >>> time_subset = ("ansi", "2004-06-01T00:00:00Z")
     >>> lat_subset = ('Lat',40,50)
     >>> long_subset = ('Long',-10,0)
     >>> formatType='NetCDF3' # chosen from cvg.supportedFormats
 
 #Make the actual getCoverage request.
-    >>> output=wcs.getCoverage(identifier=['OCCCI_V3_monthly_chlor_a'], format='application/gml+xml', subsets=[long_subset, lat_subset, time_subset])
+    >>> output=wcs.getCoverage(identifier=['OCCCI_V3_1_chlor_a_monthly'], format='application/gml+xml', subsets=[long_subset, lat_subset, time_subset])
 
 #Then write this to a netcdf file.
     >>> filename = scratch_file('wcs2test.xml')

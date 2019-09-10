@@ -8,13 +8,14 @@ OWSLib.egg-info
 tests/scratch/*
 pytest-*
 pytest_cov-*
+.pytest_cache/
 .tox
 .*.swp
 *.*~
 .cache
 .DS_Store
 .vscode
-tags
 *.nc
 *.tif
 tester.py
+tags
