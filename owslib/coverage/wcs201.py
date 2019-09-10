@@ -109,7 +109,7 @@ class WebCoverageService_2_0_1(WCSBase):
             sval = value
         return sval
 
-    def getCoverage(self, identifier=None, bbox=None, time=None, format = None,  subsets=None,crs=None, width=None, height=None, resx=None, resy=None, resz=None,parameter=None,method='Get',**kwargs):
+    def getCoverage(self, identifier=None, bbox=None, time=None, format=None, token=None, subsets=None, crs=None, width=None, height=None, resx=None, resy=None, resz=None, parameter=None, method='Get', **kwargs):
         """Request and return a coverage from the WCS as a file-like object
         note: additional **kwargs helps with multi-version implementation
         core keyword arguments should be supported cross version
@@ -128,7 +128,7 @@ class WebCoverageService_2_0_1(WCSBase):
 
         """
         if log.isEnabledFor(logging.DEBUG):
-            log.debug('WCS 2.0.0 DEBUG: Parameters passed to GetCoverage: identifier=%s, bbox=%s, time=%s, format=%s, crs=%s, width=%s, height=%s, resx=%s, resy=%s, resz=%s, parameter=%s, method=%s, other_arguments=%s'%(identifier, bbox, time, format, crs, width, height, resx, resy, resz, parameter, method, str(kwargs)))
+            log.debug('WCS 2.0.1 DEBUG: Parameters passed to GetCoverage: identifier=%s, bbox=%s, time=%s, format=%s, token=%s, crs=%s, width=%s, height=%s, resx=%s, resy=%s, resz=%s, parameter=%s, method=%s, other_arguments=%s'%(identifier, bbox, time, format, token, crs, width, height, resx, resy, resz, parameter, method, str(kwargs)))
 
         try:
             base_url = next((m.get('url') for m in self.getOperationByName('GetCoverage').methods if m.get('type').lower() == method.lower()))
@@ -136,7 +136,7 @@ class WebCoverageService_2_0_1(WCSBase):
             base_url = self.url
 
         if log.isEnabledFor(logging.DEBUG):
-            log.debug('WCS 2.0.0 DEBUG: base url of server: %s'%base_url)
+            log.debug('WCS 2.0.1 DEBUG: base url of server: %s'%base_url)
 
         request = {'version': self.version, 'request': 'GetCoverage', 'service':'WCS'}
         assert len(identifier) > 0
@@ -146,6 +146,7 @@ class WebCoverageService_2_0_1(WCSBase):
         if crs:
             request['crs']=crs
         request['format']=format
+        request['token']=token
         if width:
             request['width']=width
         if height:
@@ -173,7 +174,7 @@ class WebCoverageService_2_0_1(WCSBase):
 
 
         if log.isEnabledFor(logging.DEBUG):
-            log.debug('WCS 2.0.0 DEBUG: Second part of URL: %s'%data)
+            log.debug('WCS 2.0.1 DEBUG: Second part of URL: %s'%data)
 
         u=openURL(base_url, data, method, self.cookies)
 
@@ -256,6 +257,24 @@ class ContentMetadata(object):
         #         timepoints.append(pos)
         # if timepoints:
         #         timelimits=[timepoints[0].text,timepoints[1].text]
+        if self.timepositions:
+            return [self.timepositions[0],self.timepositions[-1]]
+        else:
+            if not hasattr(self, 'descCov'):
+                self.descCov=self._service.getDescribeCoverage(self.id)
+            return [ self.envelopes[ 0 ][ 'lowerCorner' ][ -1 ], self.envelopes[ 0 ][ 'upperCorner' ][ -1 ] ]
+        timepoints, timelimits=[],[]
+        b=self._elem.find(ns('lonLatEnvelope'))
+        if b is not None:
+            timepoints=b.findall('{http://www.opengis.net/gml}timePosition')
+        else:
+            #have to make a describeCoverage request...
+            if not hasattr(self, 'descCov'):
+                self.descCov=self._service.getDescribeCoverage(self.id)
+            for pos in self.descCov.findall(ns('CoverageOffering/')+ns('domainSet/')+ns('temporalDomain/')+'{http://www.opengis.net/gml}timePosition'):
+                timepoints.append(pos)
+        if timepoints:
+            timelimits=[timepoints[0].text,timepoints[1].text]
         return [self.timepositions[0],self.timepositions[-1]]
     timelimits=property(_getTimeLimits, None)
 
@@ -285,7 +304,7 @@ class ContentMetadata(object):
                 t_date = t_grid.origin[2]
                 start_pos = parser.parse(t_date, fuzzy=True)
                 step = float(t_grid.offsetvectors[2][2])
-                
+
                 start_pos = start_pos + timedelta(days=(step/2))
                 no_steps = int(t_grid.highlimits[2])
                 for x in range(no_steps):
@@ -300,6 +319,19 @@ class ContentMetadata(object):
         return timepositions
     timepositions=property(_getTimePositions, None)
 
+    def _getEnvelopes(self):
+        envelopes = []
+        if not hasattr(self, 'descCov'):
+            self.descCov=self._service.getDescribeCoverage(self.id)
+
+        for envelope in self.descCov.findall(nsWCS2('CoverageDescription/')+'{http://www.opengis.net/gml/3.2}boundedBy/'+'{http://www.opengis.net/gml/3.2}Envelope'):
+            lc = envelope.find('{http://www.opengis.net/gml/3.2}lowerCorner')
+            lc =lc.text.split()
+            uc = envelope.find('{http://www.opengis.net/gml/3.2}upperCorner')
+            uc =uc.text.split()
+            envelopes.append( { "lowerCorner": lc, "upperCorner": uc } )
+        return envelopes
+    envelopes=property(_getEnvelopes,None)
 
     def _getOtherBoundingBoxes(self):
         ''' incomplete, should return other bounding boxes not in WGS84
